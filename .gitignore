@@ -3,6 +3,13 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Metadata
+.DS_Store
+
+# geth
+geth-data
+keystore
+
 # C extensions
 *.so
 
