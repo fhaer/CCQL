@@ -1,0 +1,85 @@
+QueryStatement ::= 
+  QueryAttrClause 
+  SourceClause
+  FilterClause? ";"
+
+QueryAttrClause ::= 
+  'Q ' AttrSpec ( ', ' AttrSpec )*
+SourceClause ::=
+  'S ' SourceSpec ( ', ' SourceSpec )*
+FilterClause ::=
+  'F ' FilterSpec ( ', ' FilterSpec )*
+
+AttrSpec ::=
+  CCQLClass '.' AttrName
+SourceSpec ::=
+  BlockchainI ':' NetI ':' ChainDescI
+  (':' ( BlockI | TxI | AccI ) )?
+FilterSpec ::=
+  CCQLClass '.' AttrName ComparisonFunction IValue
+
+CCQLClass ::= 
+  ChainPkgClass | BlockPkgClass | TxPkgClass | AccPkgClass
+
+ChainPkgClass ::= 
+  BlockchainClass | ChainDescClass | ChainTypeClass | NetClass
+BlockPkgClass ::= 
+  BlockClass | BlockDescClass
+TxPkgClass ::= 
+  TxClass | TDescClass
+AccPkgClass ::= 
+  AccClass | AccDescClass | AccStorageClass
+
+BlockchainI ::= 
+  ( BlockchainClass '.' )? IValue
+NetI ::= 
+  ( NetClass '.' )? IValue
+ChainDescI ::=
+  ( ChainDescClass '.' )? IValue
+BlockI ::=
+  BlockClass '.' IValue
+TxI ::=
+  TxClass '.' IValue
+AccI ::=
+  ( AccClass | AccStorageClass ) '.' IValue
+
+BlockchainClass ::= 
+  'Chain' | 'C'
+NetClass ::= 
+  'Network' | 'N'
+ChainDescClass ::= 
+  'ChainDesc' | 'D'
+BlockClass ::= 
+  'Block' | 'B'
+TxClass ::= 
+  'Transaction' | 'T'
+AccClass ::= 
+  'Acc' | 'A'
+AccStorageClass ::= 
+  AssetClass | TokenClass | DataClass
+
+AssetClass ::= 
+  'Asset' | 'AS'
+TokenClass ::= 
+  'Token' | 'TO'
+DataClass ::= 
+  'Data' | 'DT'
+
+ChainTypeClass ::= 
+  'ChainType' | 'ConsensusType' | 'ExecutionType'
+BlockDescClass ::= 
+  'BlockDesc' | 'Status' | 'ValidationDesc' | 'ValidatorDesc'
+TDescClass ::= 
+  'TDesc' | 'Address' | 'UTXO'
+AccDescClass ::= 
+  'AccDesc' | 'AssetType' | 'TokenType' | 'StorageType'
+
+ComparisonFunction ::= 
+  '=' | '<>' | '>' | '<' | '>=' | '<='
+
+ClassName ::= 
+  [A-Z][A-Za-z0-9]*
+AttrName ::= 
+  [a-z][A-Za-z0-9]*
+IValue ::= 
+  [A-Za-z0-9]*

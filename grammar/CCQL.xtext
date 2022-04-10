@@ -1,0 +1,88 @@
+grammar ch.unifr.digits.ccql.CCQL with org.eclipse.xtext.common.Terminals
+
+generate cCQL "http://www.unifr.ch/digits/ccql/CCQL"
+
+CCQL:
+  ccql+=QueryStatement*;
+	
+QueryStatement:
+  q=QueryAttrClause 
+  s=SourceClause
+  f=FilterClause? ";";
+
+QueryAttrClause:
+  name='Q' attrSpec+=AttrSpec ( ',' attrSpec+=AttrSpec )*;
+SourceClause:
+  name='S' sourceSpec+=SourceSpec ( ',' sourceSpec+=SourceSpec )*;
+FilterClause:
+  name='F' filterSpec+=FilterSpec ( ',' filterSpec+=FilterSpec )*;
+
+AttrSpec:
+  ccqlC=CCQLClass '.' attr=ATTR_NAME;
+SourceSpec: 
+  blockchainI=BlockchainI ':' netI=NetI ':' chainDescI=ChainDescI 
+  (':' ( blockI=BlockI | txI=TxI | accI=AccI ) )?;
+FilterSpec: 
+  ccqlC=CCQLClass '.' attr=ATTR_NAME cmp=ComparisonFunction iVal=I_VALUE;
+
+CCQLClass: 
+  ChainPkgClass | BlockPkgClass | TxPkgClass | AccPkgClass;
+ChainPkgClass: 
+  BlockchainClass | ChainDescClass | ChainTypeClass | NetClass;
+BlockPkgClass:
+  BlockClass | BlockDescClass;
+TxPkgClass: 
+  TxClass | TxDescClass;
+AccPkgClass: 
+  AccClass | AccDescClass | AccStorageClass;
+
+BlockchainI: 
+  ( blockchainC=BlockchainClass '.' )? name=I_VALUE;
+NetI: 
+  ( netC=NetClass '.' )? name=I_VALUE;
+ChainDescI:
+  ( chainDescC=ChainDescClass '.' )? name=I_VALUE;
+BlockI:
+  blockC=BlockClass '.' name=I_VALUE;
+TxI:
+  txC=TxClass '.' name=I_VALUE;
+AccI:
+  ( accC=AccClass | accStorageC=AccStorageClass ) '.' name=I_VALUE;
+
+BlockchainClass:
+  'Chain' | 'C';
+NetClass:
+  'Network' | 'N';
+ChainDescClass:
+  'ChainDesc' | 'D';
+BlockClass:
+  'Block' | 'B';
+TxClass:
+  'Transaction' | 'T';
+AccClass:
+  'Acc' | 'A';
+AccStorageClass:
+  AssetClass | TokenClass | DataClass;
+
+AssetClass:
+  'Asset' | 'AS';
+TokenClass:
+  'Token' | 'TO';
+DataClass:
+  'Data' | 'DT';
+
+ChainTypeClass:
+  'ChainType' | 'ConsensusType' | 'ExecutionType';
+BlockDescClass:
+  'BlockDesc' | 'Status' | 'ValidationDesc' | 'ValidatorDesc';
+TxDescClass:
+  'TDesc' | 'Address' | 'UTXO';
+AccDescClass:
+  'AccDesc' | 'AssetType' | 'TokenType' | 'StorageType';
+
+ComparisonFunction:
+  '=' | '<>' | '>' | '<' | '>=' | '<=';
+
+terminal ATTR_NAME: ('a'..'z')('A'..'Z'|'a'..'z'|'0'..'9')*;
+terminal I_VALUE: ('A'..'Z'|'a'..'z'|'0'..'9')*;
+
