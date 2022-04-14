@@ -8,17 +8,17 @@ from ccql_node import ccql_data
 
 class CCQL_Node_Connector:
 
+    # TODO remove
     node_connections = {}
 
     def __init__(self, blockchain, network, chain_descriptor):
-        self.get_node_connection(blockchain, network, chain_descriptor)
+        node = self.get_node_connection(blockchain, network, chain_descriptor)
+        self.node = node
 
-    def get_block(self, chain_descriptor, block_descriptor, query_attributes):
-
-        node = self.get_node_connection(chain_descriptor)
+    def get_block(self, id):
 
         block_limit = 99999
-        block = node.get_block(block_descriptor, block_limit)
+        block = self.node.get_block(id, block_limit)
 
         tx_limit = 3
 
@@ -34,7 +34,7 @@ class CCQL_Node_Connector:
             i = 0
             transaction_data = []
             for tx_id in block[ccql_data.BL_TRANSACTION_IDS]:
-                tx = node.get_transaction(tx_id)
+                tx = self.node.get_transaction(tx_id)
                 #transaction_data.append(tx)
                 block[ccql_data.BL_TRANSACTIONS][tx_id] = tx
                 i += 1
@@ -49,12 +49,9 @@ class CCQL_Node_Connector:
         # path = data_coding.decode_cid_bytes32(path_b)
         # path = data_coding.decode_str_bytes32(path_b)
 
+    def get_account(self, id):
 
-    def get_account(self, chain_descriptor, account_descriptor, query_clause):
-
-        node = self.get_node_connection(chain_descriptor)
-
-        account = node.get_account(account_descriptor)
+        account = self.node.get_account(id)
 
         if account is None:
             print("Account not found, abort")
@@ -65,11 +62,9 @@ class CCQL_Node_Connector:
         # path = data_coding.decode_str_bytes32(path_b)
 
 
-    def get_transaction(self, chain_descriptor, tx_descriptor, query_clause):
+    def get_transaction(self, id):
 
-        node = self.get_node_connection(chain_descriptor)
-
-        tx = node.get_transaction(tx_descriptor)
+        tx = self.node.get_transaction(id)
 
         if tx is None:
             print("Transaction not found, abort")
@@ -89,16 +84,18 @@ class CCQL_Node_Connector:
         else:
             node = ccql_node.CCQL_Node() 
 
-            if chain_descriptor == ccql_data.CH_DESCRIPTOR_ETH:
-                identity = "0x0"
-                print("Create connection to Web3 Ethereum node ...")
-                node = ccql_node.Web3_Eth_Node(identity)
+            bc = ccql_data.get_bc_by_id(blockchain, network, chain_descriptor)
+
+            if not node is None and not bc is None:
+                if bc.id == "eth":
+                    identity = "0x0"
+                    print("Create connection to Web3 Ethereum node ...")
+                    node = ccql_node.Web3_Eth_Node(identity)
 
             if not node.is_connected():
                 print("Node not connected for chain:", chain_descriptor)
                 sys.exit()
 
-            CCQL_Node_Connector.node_connections[chain_descriptor] = node
+            CCQL_Node_Connector.node_connections[key] = node
 
         return node
-

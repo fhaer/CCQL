@@ -48,7 +48,7 @@ ACCOUNT_STORAGE_TYPE = 'StorageType'
 CHAIN_PKG_CLASSES = [ BLOCKCHAIN, BLOCKCHAIN_S, NETWORK, NETWORK_S, CHAIN_DESC, CHAIN_DESC_S, CHAIN_TYPE, CONSENSUS_TYPE, EXECUTION_TYPE ]
 BLOCK_PKG_CLASSES = [ BLOCK, BLOCK_S, BLOCK_DESC, BLOCK_VALIDATION_DESC, BLOCK_STATUS, BLOCK_VALIDATOR_DESC ]
 TRANSACTION_PKG_CLASSES = [ TRANSACTION, TRANSACTION_S, TRANSACTION_DESC, TRANSACTION_UTXO, TRANSACTION_ADDRESS ]
-ACCOUNT_PKG_CLASSES = [ ACCOUNT, ACCOUNT_S, ACCOUNT_DESC, ACCOUNT_ASSET, ACCOUNT_ASSET_S, ACCOUNT_ASSET_TYPE, ACCOUNT_TOKEN, ACCOUNT_TOKEN_S, ACCOUNT_TOKEN_TYPE, DATA, DATA_S, STORAGE_TYPE ]
+ACCOUNT_PKG_CLASSES = [ ACCOUNT, ACCOUNT_S, ACCOUNT_DESC, ACCOUNT_ASSET, ACCOUNT_ASSET_S, ACCOUNT_ASSET_TYPE, ACCOUNT_TOKEN, ACCOUNT_TOKEN_S, ACCOUNT_TOKEN_TYPE, ACCOUNT_DATA, ACCOUNT_DATA_S, ACCOUNT_STORAGE_TYPE ]
 
 # query statements
 Q = "Q"
@@ -58,7 +58,7 @@ Q_CLAUSES = [ Q, S, F ]
 
 CCQL_CLASSES = CHAIN_PKG_CLASSES + BLOCK_PKG_CLASSES + TRANSACTION_PKG_CLASSES + ACCOUNT_PKG_CLASSES
 
-SOURCE_SPEC_OPTIONAL = BLOCK + BLOCK_S + TRANSACTION + TRANSACTION_S + ACCOUNT + ACCOUNT_S + ACCOUNT_ASSET + ACCOUNT_ASSET_S + ACCOUNT_TOKEN + ACCOUNT_TOKEN_S + ACCOUNT_DATA + ACCOUNT_DATA_S
+SOURCE_SPEC_OPTIONAL = [ BLOCK, BLOCK_S, TRANSACTION, TRANSACTION_S, ACCOUNT, ACCOUNT_S, ACCOUNT_ASSET, ACCOUNT_ASSET_S, ACCOUNT_TOKEN, ACCOUNT_TOKEN_S, ACCOUNT_DATA, ACCOUNT_DATA_S ]
 
 
 # Data Model
@@ -89,6 +89,7 @@ class Network(object):
 class Blockchain(object):
     def __init__(self):
         self.id = ""
+        self.name = ""
         self.networks = []
 class ConsensusType(object):
     def __init__(self):
@@ -132,7 +133,7 @@ class Address(object):
         self.account = None
 class TransactionDescriptor(object):
     def __init__(self):
-        self.from = []
+        self.from_ = []
         self.to = []
         self.asset = None
         self.token = None
@@ -273,19 +274,54 @@ class Query(object):
         self.chain = []
 
 
-# supported blockchains
-def init_blockchains():
-
-    btc_chain_desc = ChainDescriptor
-    btc_net = Network("main", "Bitcoin Mainnet", btc_chain_desc)
-    btc_bc = Blockchain("btc", btc_networks)
-
 D_MODEL = []
-D_BLOCKCHAIN = blockchain()
-D_BLOCKCHAIN.
+
+# supported blockchains
+def init_bc(bc_id, bc_name, net_id, net_name, cd_id, cd_name):
+
+    cd = ChainDescriptor()
+    cd.id = cd_id
+    cd.name = cd_name
+
+    net = Network()
+    net.id = net_id
+    net.name = net_name
+    net.chainDescriptors.append(cd)
+
+    bc = Blockchain();
+    bc.id = bc_id
+    bc.name = bc_name
+
+    return bc
 
 
+def init_d_model():
 
+    btc = init_bc("btc", "Bitcoin", 1, "Bitcoin mainnet", "main", "Bitcoin chain")
+    eth = init_bc("eth", "Ethereum", 1, "Ethereum mainnet", "main", "Ethereum chain")
+    ada = init_bc("ada", "Cardano", 1, "Cardano mainnet", "main", "Cardano chain")
+    sol = init_bc("sol", "Solana", 1, "Solana mainnet", "main", "Solana chain")
+    avax_p = init_bc("avax", "Avalanche", 1, "Avalanche Primary Network", "p", "P-Chain")
+    avax_x = init_bc("avax", "Avalanche", 1, "Avalanche Primary Network", "x", "X-Chain")
+    avax_c = init_bc("avax", "Avalanche", 1, "Avalanche Primary Network", "c", "C-Chain")
+    
+    D_MODEL.extend([ btc, eth, ada, sol, avax_p, avax_x, avax_c])
+
+init_d_model()
+
+def get_bc_by_id(bc_id, net_id, cd_id):
+
+    for bc in D_MODEL:
+        if bc.id == bc_id:
+            for net in bc.networks:
+                if net.id == net_id:
+                    for cd in net.chainDescriptors:
+                        if cd.id == cd_id:
+                            return bc
+
+    return None
+
+"""
 D_MODEL = [ D_BLOCKCHAINS ]
 
 def chain():
@@ -332,3 +368,4 @@ def account():
         ACC_IS_SMART_CONTRACT: None
     }
     return account
+"""

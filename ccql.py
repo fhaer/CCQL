@@ -107,13 +107,13 @@ def process_query(query_statement):
 def parse_query_clause(input):
 
     statement = input.strip().rstrip(',').strip()
-    query_attr_spec = statement.partition('.')
-
-    if len(query_attr_spec) != 3:
+    query_attr_spec = statement.split('.')
+    
+    if len(query_attr_spec) != 2:
         print("Error: format error in query clause, not using syntax <class>.<attribute>")
         sys.exit()
-    elif query_attr_spec[1] != "." or not query_attr_spec[0] in ccql_data.CCQL_CLASSES:
-        print("Error: format error in query clause, not using syntax <class>.<attribute> or <class> not in", ccql_data.CCQL_CLASSES)
+    elif not query_attr_spec[0] in ccql_data.CCQL_CLASSES:
+        print("Error: format error in query clause, <class> not in", ccql_data.CCQL_CLASSES)
         sys.exit()
 
     if not isinstance(statement, str):
@@ -121,7 +121,7 @@ def parse_query_clause(input):
         sys.exit()
 
     class_spec = query_attr_spec[0]
-    attr_spec = query_attr_spec[2]
+    attr_spec = query_attr_spec[1]
 
     return (class_spec, attr_spec)
 
@@ -129,18 +129,17 @@ def parse_query_clause(input):
 def parse_source_clause(input):
 
     statement = input.strip().rstrip(',').strip()
-    source_attr_spec = statement.partition(':')
+    source_attr_spec = statement.split(':')
 
-    if len(source_attr_spec) != 5 or len(source_attr_spec) != 7:
-        print("Error: format error in source clause, not starting with <blockchin_instance>:<network_instance>:<chain_descriptor_instance>")
-        sys.exit()
-    elif len(source_attr_spec) == 5 and (source_attr_spec[1] != ":" or source_attr_spec[3] != ":"):
+    #if len(source_attr_spec) != 3 or len(source_attr_spec) != 4:
+    #    print("Error: format error in source clause, not starting with <blockchin_instance>:<network_instance>:<chain_descriptor_instance>", source_attr_spec)
+    #    sys.exit()
+    if len(source_attr_spec) < 3 or len(source_attr_spec) > 4:
         print("Error: format error in source clause, not using syntax <blockchin_instance>:<network_instance>:<chain_descriptor_instance>")
         sys.exit()
-    elif len(source_attr_spec) == 7:
-        optional_source_spec = source_attr_spec[6].partition(".")
-        if source_attr_spec[1] != ":" or source_attr_spec[3] != ":" or source_attr_spec[5] != ":" \
-            or len(optional_source_spec) != 3 or optional_source_spec[1] == "." or not optional_source_spec[0] in ccql_data.SOURCE_SPEC_OPTIONAL:
+    elif len(source_attr_spec) == 4:
+        optional_source_spec = source_attr_spec[3].split(".")
+        if len(optional_source_spec) != 2 or not optional_source_spec[0] in ccql_data.SOURCE_SPEC_OPTIONAL:
             print("Error: format error in source clause, not using syntax <blockchin_instance>:<network_instance>:<chain_descriptor_instance>:[<source>.<block_instance>|<source>.<transaction_instance>|<source>.<account_instance>] with <source> not in", ccql_data.SOURCE_SPEC_OPTIONAL)
             sys.exit()
         
@@ -149,14 +148,14 @@ def parse_source_clause(input):
         sys.exit()
 
     blockchain_inst = parse_attribute(source_attr_spec[0])
-    network_inst = parse_attribute(source_attr_spec[2])
-    chain_desc_inst = parse_attribute(source_attr_spec[4])
+    network_inst = parse_attribute(source_attr_spec[1])
+    chain_desc_inst = parse_attribute(source_attr_spec[2])
     optional_source_class = ""
     optional_source_inst = ""
 
-    if len(source_attr_spec) == 7:
-        optional_source_class = parse_class(source_attr_spec[6])
-        optional_source_inst = parse_attribute(source_attr_spec[6])
+    if len(source_attr_spec) == 4:
+        optional_source_class = parse_class(source_attr_spec[3])
+        optional_source_inst = parse_attribute(source_attr_spec[3])
     
     return (blockchain_inst, network_inst, chain_desc_inst, optional_source_class, optional_source_inst)
 
@@ -190,10 +189,22 @@ def parse_filter_clause(input):
 
 def process_query_for_source(source_spec, query_attribute_clause, result_map):
 
-    node_connector = ccql_node_connector.CCQL_Node_Connector(source_spec[0], source_spec[1], source_spec[2])
+    # source specification
+    blockchain_inst = source_spec[0]
+    network_inst = source_spec[1]
+    chain_desc_inst = source_spec[2]
+    optional_source_class = source_spec[3]
+    optional_source_inst = source_spec[4]
 
+    node_connector = ccql_node_connector.CCQL_Node_Connector(blockchain_inst, network_inst, chain_desc_inst)
     identity_acc = ccql_identity_provider.CCQL_Identity_Provider()
     
+    # optional source specifications: blocks, transactions, accounts, assets, tokens, data
+    if len(optional_source_class) > 0:
+        if optional_source_class == ccql_data.BLOCK:
+            block = node_connector.get_block()
+
+"""
     if source_attr_spec[-1].startswith("0x") and len(source_attr_spec[-1]) <= 42:
         account_descriptor = source_attr_spec[-1]
         account = node_connector.get_account(chain_descriptor, account_descriptor, query_attribute_clause)
@@ -209,27 +220,28 @@ def process_query_for_source(source_spec, query_attribute_clause, result_map):
         print("block_descriptor =", block_descriptor)
         transactions = node_connector.get_block(chain_descriptor, block_descriptor, query_attribute_clause)
         process_query_result(query_attribute_clause, ccql_data.BL, transactions, result_map)
+"""
 
     return result_map
 
 
 def parse_class_attribute(statement):
-    class_attr = statement.partition('.')
-    return (class_attr[0], class_attr[2])
+    class_attr = statement.split('.')
+    return (class_attr[0], class_attr[-1])
     
 def parse_class(statement):
-    class_attr = statement.partition('.')
+    class_attr = statement.split('.')
     return class_attr[0]
     
 def parse_attribute(statement):
-    class_attr = statement.partition('.')
+    class_attr = statement.split('.')
     return class_attr[-1]
     
 
 def get_query_attributes(query_attribute_clause, source_type):
     query_attributes = []
     for statement in query_attribute_clause:
-        query_attr_spec = statement.partition(".")
+        query_attr_spec = statement.split(".")
         q_type = query_attr_spec[0]
         if len(query_attr_spec) == 3 and query_attr_spec[1] == "." and q_type == source_type:
             source_type = query_attr_spec[0]
@@ -412,8 +424,8 @@ def carthesian_product(relations, attributes):
 
 
 def get_query_attributes(query_statement):
-    query_attr_spec = query_statement.partition(".")
-    if not len(query_attr_spec) == 3:
+    query_attr_spec = query_statement.split(".")
+    if not len(query_attr_spec) == 2:
         print("Error: format error in query clause")
         sys.exit(1)
     return query_attr_spec
