@@ -15,32 +15,26 @@ class CCQL_Node_Connector:
         node = self.get_node_connection(blockchain, network, chain_descriptor)
         self.node = node
 
-    def get_block(self, id):
+    def get_blocks(self, number_from, number_to):
+
+        blocks = []
+        linked_block = None
+
+        for i in range(number_from, number_to+1):
+            result_list = self.get_block(i, linked_block)
+            if len(result_list) > 0:
+                block_i = result_list[-1]
+                blocks.append(block_i)
+                linked_block = block_i
+
+        return blocks
+
+    def get_block(self, id, linked_block_desc=None):
 
         block_limit = 99999
-        block = self.node.get_block(id, block_limit)
+        linked_block_desc = None
+        block = self.node.get_block(id, linked_block_desc, block_limit)
 
-        tx_limit = 3
-
-        is_query_for_tx = False
-        
-        # TODO: remove, legacy
-        #for q in query_attributes:
-        #    if q.startswith(ccql_data.TX):
-        #        is_query_for_tx = True
-        #        break
-        # TODO: remove, legacy
-        if is_query_for_tx:
-            i = 0
-            transaction_data = []
-            for tx_id in block[ccql_data.BL_TRANSACTION_IDS]:
-                tx = self.node.get_transaction(tx_id)
-                #transaction_data.append(tx)
-                block[ccql_data.BL_TRANSACTIONS][tx_id] = tx
-                i += 1
-                if i >= tx_limit:
-                    break
-            
         if block is None:
             print("Block not found, abort")
             sys.exit()
@@ -76,7 +70,7 @@ class CCQL_Node_Connector:
     def get_node_connection(self, blockchain, network, chain_descriptor):
 
         node = None
-        key = blockchain + "." + network + "." + chain_descriptor
+        key = blockchain + ":" + network + ":" + chain_descriptor
 
         if key in CCQL_Node_Connector.node_connections.keys():
             node = CCQL_Node_Connector.node_connections[key]
@@ -91,9 +85,10 @@ class CCQL_Node_Connector:
                     identity = "0x0"
                     print("Create connection to Web3 Ethereum node ...")
                     node = ccql_node.Web3_Eth_Node(identity)
-
+            if bc is None:
+                print("No node connection available for", key)
             if not node.is_connected():
-                print("Node not connected for chain:", chain_descriptor)
+                print("Node not connected for chain:", bc)
                 sys.exit()
 
             CCQL_Node_Connector.node_connections[key] = node

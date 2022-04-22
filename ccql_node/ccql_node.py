@@ -74,54 +74,82 @@ class Web3_Eth_Node(CCQL_Node):
 	def is_connected(self):
 		return self.w3.isConnected()
 
-	def get_block(self, block_descriptor, limit):
+	def get_block(self, block_id, linked_block_desc, limit):
 		
-		#print("block_descriptor", block_descriptor)
+		#print("block_id", block_id)
 
-    	# block_descriptor must be numberic, >=0 for block height, <0 for block depth
-		if isinstance(block_descriptor, int) or block_descriptor.isnumeric():
-			block_descriptor = int(block_descriptor)
+    	# block_id must be numberic, >=0 for block height, <0 for block depth
+		if isinstance(block_id, int) or block_id.isnumeric():
+			block_id = int(block_id)
 		else:
 			print("Error: block descriptor is not numeric")
 			sys.exit()
 		
-		# construct block desciptor for web3
-		block_descriptor_web3 = block_descriptor
-		if (block_descriptor == -1):
-			block_descriptor_web3 = 'latest'
-		elif (block_descriptor_web3 < -1):
+		# construct block id for web3
+		block_id_web3 = block_id
+		if (block_id == -1):
+			block_id_web3 = 'latest'
+		elif (block_id_web3 < -1):
 			tip = self.w3.eth.getBlockNumber()
-			block_descriptor_web3 = tip + block_descriptor + 1
+			block_id_web3 = tip + block_id + 1
 
-		web3_block = self.w3.eth.getBlock(block_descriptor_web3)
+		web3_block = self.w3.eth.get_block(block_id_web3, True)
+		#print(web3_block)
 
-		self.block = ccql_data.block()
-		self.block[ccql_data.ID] = web3_block.number
-		self.block[ccql_data.BL_TIMESTAMP] = web3_block.timestamp
-		self.block[ccql_data.DESCRIPTOR] = block_descriptor
+		block = ccql_data.Block()
+		block_desc = ccql_data.BlockDescriptor()
+		block.id = web3_block.hash.hex()
+		
+		block_desc.height = web3_block.number
+		block_desc.timestamp = web3_block.timestamp
+		block.descriptor = block_desc
+
+		block.linkedBlockDescriptor = linked_block_desc
 
 		i = 0
-		for tx_hex_bytes in web3_block['transactions']:
-			tx_hex_str = tx_hex_bytes.hex()
-			tx = ccql_data.transaction()
-			#print(tx_hex_str)
+		for web3_tx in web3_block.transactions:
 
-			tx[ccql_data.ID] = tx_hex_str
-			#web3_tx = self.w3.eth.getTransaction(tx_hex_bytes)
-			#tx = self.get_transaction(tx_hex_str)
-			self.block[ccql_data.BL_TRANSACTION_IDS].append(tx_hex_str)
-			self.block[ccql_data.BL_TRANSACTIONS][tx_hex_str] = tx
+			tx = ccql_data.Transaction()
+			tx_desc = ccql_data.TransactionDescriptor()
+
+			tx.id = web3_tx.hash.hex()
+			
+			# Ethereum gas after London hardfork: maxFeePerGas, maxPriorityFeePerGas
+			# Ethereum gas before London hardfork: gas, gasPrice
+			if 'maxFeePerGas' in web3_tx and not web3_tx.maxFeePerGas is None:
+				baseFeePerGas = web3_tx.maxFeePerGas - web3_tx.maxPriorityFeePerGas
+				fee = baseFeePerGas * web3_tx.gas
+				tx.fee = fee / 10**18
+				tx.feeUnit = 'eth'
+			elif 'gasPrice' in web3_tx and not web3_tx.gasPrice is None:
+				fee = web3_tx.gasPrice * web3_tx.gas
+				tx.fee = fee / 10**18
+				tx.feeUnit = 'eth'
+
+			tx_desc.from_.append(web3_tx['from'])
+			tx_desc.to.append(web3_tx['to'])
+			tx_desc.value = web3_tx.value / 10**18
+			tx_desc.data = web3_tx.input
+
+			tx.descriptor.append(tx_desc)
+			block.transactions.append(tx)
+			
+			ccql_data.print_obj(tx)
+			ccql_data.print_obj(tx_desc)
+			#print(tx)
+			#print(tx_desc)
+
 			i += 1
 			if i >= limit:
 				break
 
-		return self.block
+		return block
 
 
-	def get_blocks(self, block_descriptor_list):
+	def get_blocks(self, block_id_list):
 		blocks = []
-		for block_descriptor in block_descriptor_list:
-			blocks.append(self.get_block(block_descriptor))
+		for block_id in block_id_list:
+			blocks.append(self.get_block(block_id))
 		return blocks
 
 
@@ -140,12 +168,12 @@ class Web3_Eth_Node(CCQL_Node):
 		
 		tx = ccql_data.transaction()
 		tx[ccql_data.ID] = transaction_descriptor_web3
-		tx[ccql_data.TX_ADDRESS_FROM] = web3_tx['from']
-		tx[ccql_data.TX_ADDRESS_TO] = web3_tx['to']
-		tx[ccql_data.TX_BALANCE] = web3_tx['value'] * pow(10, -18) # convert wei to eth
-		tx[ccql_data.TX_DATA] = web3_tx['input']
-		tx[ccql_data.TX_BLOCK_ID] = web3_tx['blockNumber']
-		tx[ccql_data.TX_BLOCK_DESCRIPTOR] = web3_tx['blockHash']
+		tx[ccql_data.TX_ADDRESS_FROM] = tx['from']
+		tx[ccql_data.TX_ADDRESS_TO] = web3_tx.to
+		tx[ccql_data.TX_BALANCE] = web3_tx.value * pow(10, -18) # convert wei to eth
+		tx[ccql_data.TX_DATA] = web3_tx.input
+		tx[ccql_data.TX_BLOCK_ID] = web3_tx.blockNumber
+		tx[ccql_data.TX_block_id] = web3_tx.blockHash
 
 		return tx
 
@@ -212,7 +240,7 @@ class Web3_Eth_Node(CCQL_Node):
 	def get_current_gas_price(self):
 		gas_price_api = "https://www.etherchain.org/api/gasPriceOracle"
 		r = requests.get(gas_price_api).json()
-		gas_price = Web3.toWei(r['fastest'], 'gwei')
+		gas_price = Web3.toWei(r.fastest, 'gwei')
 
 		if gas_price > 100000000000:
 			print("Gas price exceeds 100 Gwei, abort")

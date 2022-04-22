@@ -202,8 +202,9 @@ def process_query_for_source(source_spec, query_attribute_clause, result_map):
     # optional source specifications: blocks, transactions, accounts, assets, tokens, data
     if len(optional_source_class) > 0:
         if optional_source_class == ccql_data.BLOCK:
-            block = node_connector.get_block()
-
+            block = node_connector.get_block(optional_source_inst)
+            process_query_result(query_attribute_clause, ccql_data.BLOCK, block, result_map)
+    return result_map
 """
     if source_attr_spec[-1].startswith("0x") and len(source_attr_spec[-1]) <= 42:
         account_descriptor = source_attr_spec[-1]
@@ -221,9 +222,6 @@ def process_query_for_source(source_spec, query_attribute_clause, result_map):
         transactions = node_connector.get_block(chain_descriptor, block_descriptor, query_attribute_clause)
         process_query_result(query_attribute_clause, ccql_data.BL, transactions, result_map)
 """
-
-    return result_map
-
 
 def parse_class_attribute(statement):
     class_attr = statement.split('.')
@@ -256,7 +254,7 @@ def process_query_result(query_attribute_clause, source_type, result, result_map
         result_map[source_type] = {}
 
     for r in result:
-        result_map[source_type][r[ccql_data.ID]] = r
+        result_map[source_type][r.id] = r
 
 def process_query_result_l(query_attribute_clause, source_type, result, result_map):
 
@@ -321,8 +319,11 @@ def output_query_result_by_attribute(query_attribute_clause, result_map):
 
 
 def append_query_result_types(result_map, types_output, query_attribute_clause):
-    for a in query_attribute_clause:
-        types_output += a + "|"
+    for qa in query_attribute_clause:
+        qa_class = qa[0]
+        qa_attr = qa[-1]
+        types_output += qa_class + "." + qa_attr + "|"
+
     return types_output
 
 def append_query_result_types_l(result_map, source_type, types_output):
@@ -344,7 +345,7 @@ def append_query_result_values(result_map, values_output, query_attribute_clause
 
         for r in result_map[source_type].values():
             #val = result_map[source_type][r[ccql_data.ID]][attr]
-            val = r[attr]
+            val = getattr(r, attr)
             if isinstance(val, list):
                 q_rows += len(val)
             else:
@@ -369,7 +370,7 @@ def append_query_result_values(result_map, values_output, query_attribute_clause
         #print(source_type)
         #print(result_map)
         for r in result_map[source_type].values():
-            val = r[attr]
+            val = getattr(r, attr)
             #print(val)
             #val = result_map[source_type][r[ccql_data.ID]][attr]
             if isinstance(val, list):
@@ -423,8 +424,10 @@ def carthesian_product(relations, attributes):
     return output_columns
 
 
-def get_query_attributes(query_statement):
-    query_attr_spec = query_statement.split(".")
+def get_query_attributes(query_specification):
+    if type(query_specification) is tuple:
+        return query_specification
+    query_attr_spec = query_specification.split(".")
     if not len(query_attr_spec) == 2:
         print("Error: format error in query clause")
         sys.exit(1)

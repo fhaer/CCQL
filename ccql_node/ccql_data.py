@@ -117,8 +117,6 @@ class Transaction(object):
         self.fee = 0.
         self.feePrice = 0.
         self.feeUnit = ""
-        self.transactionDescriptor = []
-        self.block = None
 class UTXO(object):
     def __init__(self):
         self.id = 0
@@ -141,12 +139,6 @@ class TransactionDescriptor(object):
         self.value = 0.
         self.script = ""
         self.utxo = None
-        self.token2 = None
-        self.uTXO = None
-        self.address = []
-        self.data2 = None
-        self.asset2 = None
-        self.transaction = None
 class Data(object):
     def __init__(self):
         self.id = 0
@@ -246,8 +238,6 @@ class Block(object):
         self.transactions = []
         self.accounts = []
         self.chain = None
-        self.account = []
-        self.transaction = []
         self.validationDescriptor = None
         self.blockDescriptor = None
 class ValidationDescriptor(object):
@@ -280,30 +270,31 @@ D_MODEL = []
 def init_bc(bc_id, bc_name, net_id, net_name, cd_id, cd_name):
 
     cd = ChainDescriptor()
-    cd.id = cd_id
+    cd.id = str(cd_id)
     cd.name = cd_name
 
     net = Network()
-    net.id = net_id
+    net.id = str(net_id)
     net.name = net_name
     net.chainDescriptors.append(cd)
 
-    bc = Blockchain();
-    bc.id = bc_id
+    bc = Blockchain()
+    bc.id = str(bc_id)
     bc.name = bc_name
+    bc.networks.append(net)
 
     return bc
 
 
 def init_d_model():
 
-    btc = init_bc("btc", "Bitcoin", 1, "Bitcoin mainnet", "main", "Bitcoin chain")
-    eth = init_bc("eth", "Ethereum", 1, "Ethereum mainnet", "main", "Ethereum chain")
-    ada = init_bc("ada", "Cardano", 1, "Cardano mainnet", "main", "Cardano chain")
-    sol = init_bc("sol", "Solana", 1, "Solana mainnet", "main", "Solana chain")
-    avax_p = init_bc("avax", "Avalanche", 1, "Avalanche Primary Network", "p", "P-Chain")
-    avax_x = init_bc("avax", "Avalanche", 1, "Avalanche Primary Network", "x", "X-Chain")
-    avax_c = init_bc("avax", "Avalanche", 1, "Avalanche Primary Network", "c", "C-Chain")
+    btc = init_bc("btc", "Bitcoin", "main", "Bitcoin mainnet", 1, "Bitcoin chain")
+    eth = init_bc("eth", "Ethereum", "main", "Ethereum mainnet", 1, "Ethereum chain")
+    ada = init_bc("ada", "Cardano", "main", "Cardano mainnet", 1, "Cardano chain")
+    sol = init_bc("sol", "Solana", "main", "Solana mainnet", 1, "Solana chain")
+    avax_p = init_bc("avax", "Avalanche", "main", "Avalanche Primary Network", "p", "P-Chain")
+    avax_x = init_bc("avax", "Avalanche", "main", "Avalanche Primary Network", "x", "X-Chain")
+    avax_c = init_bc("avax", "Avalanche", "main", "Avalanche Primary Network", "c", "C-Chain")
     
     D_MODEL.extend([ btc, eth, ada, sol, avax_p, avax_x, avax_c])
 
@@ -320,6 +311,21 @@ def get_bc_by_id(bc_id, net_id, cd_id):
                             return bc
 
     return None
+
+def print_obj(obj):
+    cl = type(obj).__name__
+    inst = ""
+    if 'id' in dir(obj):
+        inst = obj.id
+    elif 'height' in dir(obj):
+        inst = obj.name
+    else:
+        inst = obj
+    print(cl, inst)
+    for attr in dir(obj):
+        val = str(getattr(obj, attr))
+        if not attr.startswith("_"):
+            print(" -", attr, val)
 
 """
 D_MODEL = [ D_BLOCKCHAINS ]
