@@ -11,8 +11,8 @@ In the data_model directory, the model can be viewed in PDF, SVG, and XMI files 
 In the grammar directory, the following files define the grammar:
 
 - grammar-specification.ebnf: specification of the EBNF grammar
-- grammar-specification.xhtml: Generated HTML documentation of the grammar
-- grammar-specification.xtext: Implementation using the Eclipse Modeling Framework based on Xtext
+- grammar-specification.xhtml: generated HTML documentation of the grammar
+- grammar-specification.xtext: implementation using the Eclipse Modeling Framework based on Xtext
 
 ### Prototype
 
