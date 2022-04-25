@@ -19,9 +19,13 @@ EXECUTION_TYPE = 'ExecutionType'
 BLOCK = 'Block'
 BLOCK_S = 'B'
 BLOCK_DESC = 'BlockDesc'
+BLOCK_DESC_LINKED = 'BlockDescLinked'
 BLOCK_STATUS = 'Status'
 BLOCK_VALIDATION_DESC = 'ValidationDesc'
 BLOCK_VALIDATOR_DESC = 'ValidatorDesc'
+BLOCK_VALIDATOR_PROPOSER = 'ValidatorDescPr'
+BLOCK_VALIDATOR_CREATOR = 'ValidatorDescCr'
+BLOCK_VALIDATOR_ATTESTER = 'ValidatorDescAtt'
 
 # transaction package classes
 TRANSACTION = 'Transaction'
@@ -139,6 +143,7 @@ class TransactionDescriptor(object):
         self.value = 0.
         self.script = ""
         self.utxo = None
+        self.unit = ""
 class Data(object):
     def __init__(self):
         self.id = 0
@@ -156,9 +161,6 @@ class Account(object):
         self.data = []
         self.accountDescriptor = None
         self.block = []
-        self.data = []
-        self.asset = []
-        self.token = []
 class Asset(object):
     def __init__(self):
         self.id = 0
@@ -239,7 +241,6 @@ class Block(object):
         self.accounts = []
         self.chain = None
         self.validationDescriptor = None
-        self.blockDescriptor = None
 class ValidationDescriptor(object):
     def __init__(self):
         self.validationInput = ""
@@ -312,6 +313,15 @@ def get_bc_by_id(bc_id, net_id, cd_id):
 
     return None
 
+def get_chain_instance_list():
+    instances = []
+    for bc in D_MODEL:
+        for net in bc.networks:
+            for cd in net.chainDescriptors:
+                inst = bc.id + ":" + net.id + ":" + cd.id
+                instances.append(inst)
+    return instances
+
 def print_obj(obj):
     cl = type(obj).__name__
     inst = ""
@@ -327,51 +337,13 @@ def print_obj(obj):
         if not attr.startswith("_"):
             print(" -", attr, val)
 
-"""
-D_MODEL = [ D_BLOCKCHAINS ]
+def print_objs(obj_list):
+    for obj in obj_list:
+        print_obj(obj)
 
-def chain():
-    chain = {
-        ID: None,
-        DESCRIPTOR: '',
-        CH_IS_UTXO_BASED: False,
-        CH_IS_ACCOUNT_BASED: False
-    }
-    return chain
-
-def block():
-    block = {
-        ID: None, 
-        DESCRIPTOR: '',
-        BLOCK_TIMESTAMP: None,
-        BLOCK_TRANSACTION_IDS: [],
-        BLOCK_TRANSACTIONS: {}
-    }
-    return block
-
-def transaction():
-    transaction = {
-        ID: None,
-        DESCRIPTOR: '', 
-        TX_ADDRESS_FROM: None,
-        TX_ADDRESS_TO: None,
-        TX_BLOCK_ID: None,
-        TX_BLOCK_DESCRIPTOR: None,
-        TX_BALANCE: None,
-        TX_DATA: None,
-        TX_IS_CONTRACT_CALL: None,
-        TX_CONTRACT_METHOD: None,
-        TX_CONTRACT_DATA: None
-    }
-    return transaction
-
-def account():
-    account = {
-        ID: None,
-        DESCRIPTOR: '', 
-        ACC_BALANCE: None,
-        ACC_STORAGE: None,
-        ACC_IS_SMART_CONTRACT: None
-    }
-    return account
-"""
+def print_obj_ids(obj_list):
+    out = ""
+    for obj in obj_list:
+        if 'id' in dir(obj):
+            out += obj.id + " "
+    print(out)

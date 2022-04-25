@@ -4,6 +4,7 @@ import sys
 import getopt
 import re
 import math
+import uuid
 from unittest import result
 
 import ccql_node_connector
@@ -29,37 +30,6 @@ def print_usage():
     print("")
     print("")
     print("For details, refer to the read-me file and the ccql.ebnf grammar specification.")
-
-    #print("Query, Source, and Filter Specification:")
-    #print("")
-    #print("<query_attribut_spec> = { chain.<ch_attr> | block.<bl_attr> | account.<ac_attr> | tx.<tx_attr> }")
-    #print("<ch_attr> = { id | descriptor }                                                -- chain attributes defined by the data model in ccql_data")
-    #print("<bl_attr> = { id | descriptor | timestamp | transaction_ids }                  -- block attributes according to ccql_data")
-    #print("<ac_attr> = { id | descriptor | balance }                                      -- account attributes according to ccql_data")
-    #print("<tx_attr> = { id | descriptor | address_from | address_to | balance | data }   -- transaction attributes according to ccql_data")
-    #print("")
-    #print("Source descriptors are supported for blocks and accounts:")
-    #print("<source_attr_spec> = { <chain_descriptor>.<block_descriptor> | <chain_descriptor>.<tx_descriptor> | <chain_descriptor>.<account_descriptor> }")
-    #print("<chain_descriptor> = { eth }                                                   -- only eth (Ethereum) is supported at this point")
-    #print("<block_descriptor> = { <id> | <descriptor> }                                   -- block by ID or descriptor, i.e. number or hash for eth")
-    #print("<tx_descriptor> = { <id> }                                                     -- transaction with given ID, i.e. 0x<transaction_hash> for eth")
-    #print("<account_descriptor> = { <id> }                                                -- account with ID, i.e. 0x<address> for eth")
-    #print("")
-    #print("Filter descriptors are supported for comparisons of transactions and accounts:")
-    #print("<filter_descriptor> = { <transaction_filter> | <account_filter> } ")
-    #print("<transaction_filter> = { <transaction_descriptor> = <transaction_descriptor> } -- only equals comparison at this point")
-    #print("<account_filter> = { <account_descriptor> = <account_descriptor> }             -- only equals comparison at this point")
-    #print("")
-    #print("Example Queries")
-    #print("Q account.id S eth.0x06012c8cf97BEaD5deAe237070F9587f8E7A266d")
-    #print("Q account.id, account.balance S eth.0x06012c8cf97BEaD5deAe237070F9587f8E7A266d")
-    #print("Q block.id, block.timestamp, block.transaction_ids S eth.4711111")
-    #print("Q tx.id, tx.balance, tx.address_to, tx.address_from S eth.0x7bc23a1e155346033bf4c7e772bdc274c71215a7f4fe1607fc4e0ae24d2c0243")
-    #print("")
-    #print("Testing:")
-    #print(" Q chain, block, tx.id, tx.address_to S eth.block.4711 F tx.address_to = 0xabc L 3")
-    #print("  => query block 4711, query tx all tx, filter for address_to, max. 3")
-    #print(" Q S eth.block, eth.acc F eth.tx. eth.acc.id")
     print("")
     sys.exit()
 
@@ -96,12 +66,13 @@ def process_query(query_statement):
             print("Statement token:", token)
             sys.exit()
 
+    i = 0
     if len(query_attribute_clause) > 0:
         for source_spec in source_clause:
-            process_query_for_source(source_spec, query_attribute_clause, result_map)
-        # TODO filter_clause
+            i += 1
+            process_query_for_source(source_spec, i, query_attribute_clause, result_map)
 
-    output_query_result(query_attribute_clause, result_map)
+    output_query_result(query_attribute_clause, i, result_map, filter_clause)
 
 
 def parse_query_clause(input):
@@ -120,10 +91,7 @@ def parse_query_clause(input):
         print("Error: non-string value in query clause")
         sys.exit()
 
-    class_spec = query_attr_spec[0]
-    attr_spec = query_attr_spec[1]
-
-    return (class_spec, attr_spec)
+    return query_attr_spec
 
 
 def parse_source_clause(input):
@@ -132,15 +100,17 @@ def parse_source_clause(input):
     source_attr_spec = statement.split(':')
 
     #if len(source_attr_spec) != 3 or len(source_attr_spec) != 4:
-    #    print("Error: format error in source clause, not starting with <blockchin_instance>:<network_instance>:<chain_descriptor_instance>", source_attr_spec)
+    #    print("Error: format error in source clause, not starting with <blockchain_instance>:<network_instance>:<chain_descriptor_instance>", source_attr_spec)
     #    sys.exit()
     if len(source_attr_spec) < 3 or len(source_attr_spec) > 4:
-        print("Error: format error in source clause, not using syntax <blockchin_instance>:<network_instance>:<chain_descriptor_instance>")
+        print("Error: format error in source clause, not using syntax <blockchain_instance>:<network_instance>:<chain_descriptor_instance>", "\n")
+        print("Data model <blockchain_instance>:<network_instance>:<chain_descriptor_instance> =", ccql_data.get_chain_instance_list())
         sys.exit()
     elif len(source_attr_spec) == 4:
         optional_source_spec = source_attr_spec[3].split(".")
         if len(optional_source_spec) != 2 or not optional_source_spec[0] in ccql_data.SOURCE_SPEC_OPTIONAL:
-            print("Error: format error in source clause, not using syntax <blockchin_instance>:<network_instance>:<chain_descriptor_instance>:[<source>.<block_instance>|<source>.<transaction_instance>|<source>.<account_instance>] with <source> not in", ccql_data.SOURCE_SPEC_OPTIONAL)
+            print("Error: format error in source clause, not using syntax <blockchain_instance>:<network_instance>:<chain_descriptor_instance>:[<source>.<block_instance>|<source>.<transaction_instance>|<source>.<account_instance>] with <source> not in", ccql_data.SOURCE_SPEC_OPTIONAL, "\n")
+            print("Data model <blockchain_instance>:<network_instance>:<chain_descriptor_instance> =", ccql_data.get_chain_instance_list())
             sys.exit()
         
     if not isinstance(statement, str):
@@ -164,10 +134,10 @@ def parse_filter_clause(input):
 
     statement = input.strip().rstrip(',').strip()
 
-    filter_syntax = 'r(\S+)\.(\S+)\s*(=|<>|<|>|<=|>=)\s*(\S+)'
+    filter_syntax = '(\S+)\.(\S+)\s*(=|<>|<|>|<=|>=)\s*(\S+)'
     filter_spec = re.findall(filter_syntax, statement)
-
-    if len(filter_spec) != 1 or len(filter_spec[0] != 4):
+    
+    if len(filter_spec) != 1 or len(filter_spec[0]) != 4:
         print("Error: format error in filter clause, not syntax <class>.<attribute> <operator> <value> with <operator> not in (=|<>|<|>|<=|>=)")
         sys.exit()
 
@@ -187,7 +157,7 @@ def parse_filter_clause(input):
     return (filter_class, filter_attr, filter_operator, filter_value)
 
 
-def process_query_for_source(source_spec, query_attribute_clause, result_map):
+def process_query_for_source(source_spec, i, query_attribute_clause, result_map):
 
     # source specification
     blockchain_inst = source_spec[0]
@@ -201,27 +171,37 @@ def process_query_for_source(source_spec, query_attribute_clause, result_map):
     
     # optional source specifications: blocks, transactions, accounts, assets, tokens, data
     if len(optional_source_class) > 0:
-        if optional_source_class == ccql_data.BLOCK:
-            block = node_connector.get_block(optional_source_inst)
-            process_query_result(query_attribute_clause, ccql_data.BLOCK, block, result_map)
-    return result_map
-"""
-    if source_attr_spec[-1].startswith("0x") and len(source_attr_spec[-1]) <= 42:
-        account_descriptor = source_attr_spec[-1]
-        account = node_connector.get_account(chain_descriptor, account_descriptor, query_attribute_clause)
-        process_query_result(query_attribute_clause, ccql_data.AC, account, result_map)
-    elif source_attr_spec[-1].startswith("0x") and len(source_attr_spec[-1]) > 42:
-        tx = source_attr_spec[-1]
-        tx = node_connector.get_transaction(chain_descriptor, tx, query_attribute_clause)
-        process_query_result(query_attribute_clause, ccql_data.TX, tx, result_map)
-    else:
-        block_descriptor = source_attr_spec[-1]
-        print()
-        print("chain_descriptor =", chain_descriptor)
-        print("block_descriptor =", block_descriptor)
-        transactions = node_connector.get_block(chain_descriptor, block_descriptor, query_attribute_clause)
-        process_query_result(query_attribute_clause, ccql_data.BL, transactions, result_map)
-"""
+        if optional_source_class == ccql_data.BLOCK or optional_source_class == ccql_data.BLOCK_S:
+            (block, block_desc, status, linked_block_desc, validation_desc, val_desc_proposer, val_desc_creator, val_desc_att, tx, acc) = node_connector.get_block(optional_source_inst)
+            map_query_result(query_attribute_clause, i, ccql_data.BLOCK, ccql_data.BLOCK_S, block, result_map)
+            map_query_result(query_attribute_clause, i, ccql_data.BLOCK_DESC, None, block_desc, result_map)
+            map_query_result(query_attribute_clause, i, ccql_data.BLOCK_STATUS, None, status, result_map)
+            map_query_result(query_attribute_clause, i, ccql_data.BLOCK_DESC_LINKED, None, linked_block_desc, result_map)
+            map_query_result(query_attribute_clause, i, ccql_data.BLOCK_VALIDATION_DESC, None, validation_desc, result_map)
+            map_query_result(query_attribute_clause, i, ccql_data.BLOCK_VALIDATOR_PROPOSER, None, val_desc_proposer, result_map)
+            map_query_result(query_attribute_clause, i, ccql_data.BLOCK_VALIDATOR_CREATOR, None, val_desc_creator, result_map)
+            map_query_result(query_attribute_clause, i, ccql_data.BLOCK_VALIDATOR_ATTESTER, None, val_desc_att, result_map)
+            map_query_result(query_attribute_clause, i, ccql_data.TRANSACTION, ccql_data.TRANSACTION_S, tx, result_map)
+            map_query_result(query_attribute_clause, i, ccql_data.ACCOUNT, ccql_data.ACCOUNT_S, acc, result_map)
+        elif optional_source_class == ccql_data.ACCOUNT or optional_source_class == ccql_data.ACCOUNT_S:
+            (account, accountDesc, asset, assetType, token, tokenType, data, storageType) = node_connector.get_account(optional_source_inst)
+            map_query_result(query_attribute_clause, i, ccql_data.ACCOUNT, ccql_data.ACCOUNT_S, account, result_map)
+            map_query_result(query_attribute_clause, i, ccql_data.ACCOUNT_DESC, None, accountDesc, result_map)
+            map_query_result(query_attribute_clause, i, ccql_data.ACCOUNT_ASSET, ccql_data.ACCOUNT_ASSET_S, asset, result_map)
+            map_query_result(query_attribute_clause, i, ccql_data.ACCOUNT_ASSET_TYPE, None, assetType, result_map)
+            map_query_result(query_attribute_clause, i, ccql_data.ACCOUNT_TOKEN, ccql_data.ACCOUNT_TOKEN_S, token, result_map)
+            map_query_result(query_attribute_clause, i, ccql_data.ACCOUNT_TOKEN_TYPE, None, tokenType, result_map)
+            map_query_result(query_attribute_clause, i, ccql_data.ACCOUNT_DATA, ccql_data.ACCOUNT_DATA_S, data, result_map)
+            map_query_result(query_attribute_clause, i, ccql_data.ACCOUNT_STORAGE_TYPE, None, storageType, result_map)
+        elif optional_source_class == ccql_data.TRANSACTION or optional_source_class == ccql_data.TRANSACTION_S:
+            (tx, txDesc, utxo) = node_connector.get_transaction(optional_source_inst)
+            map_query_result(query_attribute_clause, i, ccql_data.TRANSACTION, ccql_data.TRANSACTION_S, tx, result_map)
+            map_query_result(query_attribute_clause, i, ccql_data.TRANSACTION_DESC, None, txDesc, result_map)
+            map_query_result(query_attribute_clause, i, ccql_data.UTXO, None, utxo, result_map)
+        else:
+            print("Unknown optional source class:", optional_source_class)
+            sys.exit()
+    
 
 def parse_class_attribute(statement):
     class_attr = statement.split('.')
@@ -236,27 +216,24 @@ def parse_attribute(statement):
     return class_attr[-1]
     
 
-def get_query_attributes(query_attribute_clause, source_type):
-    query_attributes = []
-    for statement in query_attribute_clause:
-        query_attr_spec = statement.split(".")
-        q_type = query_attr_spec[0]
-        if len(query_attr_spec) == 3 and query_attr_spec[1] == "." and q_type == source_type:
-            source_type = query_attr_spec[0]
-            last_attr = query_attr_spec[-1]
-            query_attributes.append(last_attr)
-    return query_attributes
+def map_query_result(query_attribute_clause, i, source_type, source_type_short, result, result_map):
 
-
-def process_query_result(query_attribute_clause, source_type, result, result_map):
+    result_map_key = str(i) + ":" + str(source_type)
 
     if not source_type in result_map.keys():
-        result_map[source_type] = {}
+        result_map[result_map_key] = {}
 
     for r in result:
-        result_map[source_type][r.id] = r
+        if not 'id' in dir(r):
+            r.id = str(uuid.uuid4())
+        result_map[result_map_key][r.id] = r
 
-def process_query_result_l(query_attribute_clause, source_type, result, result_map):
+    for i in range(0, len(query_attribute_clause)):
+        cl = query_attribute_clause[i][0]
+        if cl == source_type_short:
+            query_attribute_clause[i][0] = source_type
+
+def map_query_result_last(query_attribute_clause, source_type, result, result_map):
 
     if not source_type in result_map.keys():
         result_map[source_type] = {}
@@ -295,34 +272,35 @@ def append_result(result_map, source_type, key, result_value):
         else:
             result_map[source_type][key] = []
 
-def output_query_result(query_attribute_clause, result_map):
+def output_query_result(query_attribute_clause, i, result_map, filter_clause):
 
     print()
-    print("Query results:")
-    output_query_result_by_attribute(query_attribute_clause, result_map)
+    print("Query results:\n")
+    output_query_result_by_attribute(query_attribute_clause, i, result_map, filter_clause)
     print()
     #print("DEBUG: Raw result data")
     #print(result_map)
 
     
-def output_query_result_by_attribute(query_attribute_clause, result_map):
+def output_query_result_by_attribute(query_attribute_clause, i, result_map, filter_clause):
 
-    #for source_type in sorted(result_map.keys()):
     types_output = ""
-    types_output = append_query_result_types(result_map, types_output, query_attribute_clause)
+    types_output = append_query_result_types(i, result_map, types_output, query_attribute_clause)
     print(types_output)
-    values_output = ""
-    (n_rows, values_output) = append_query_result_values(result_map, values_output, query_attribute_clause)
-    print(values_output)
+    (n_rows, rows_output) = append_query_result_values(i, result_map, query_attribute_clause, filter_clause)
+    for row in rows_output:
+        print(row)
 
-    print("Number of rows:", n_rows)
+    print("\nNumber of rows:", n_rows)
 
 
-def append_query_result_types(result_map, types_output, query_attribute_clause):
-    for qa in query_attribute_clause:
-        qa_class = qa[0]
-        qa_attr = qa[-1]
-        types_output += qa_class + "." + qa_attr + "|"
+def append_query_result_types(i, result_map, types_output, query_attribute_clause):
+
+    for source_id in range(1, i+1):
+        for qa in query_attribute_clause:
+            qa_class = qa[0]
+            qa_attr = qa[-1]
+            types_output += str(source_id) + ":" + qa_class + "." + qa_attr + "|"
 
     return types_output
 
@@ -333,70 +311,96 @@ def append_query_result_types_l(result_map, source_type, types_output):
         types_output += att_type + "|"
     return types_output
 
-def append_query_result_values(result_map, values_output, query_attribute_clause):
+def append_query_result_value(output, value, n_rows_remaining):
+    if isinstance(value, list):
+        if len(value) > 0:
+            n_rows_remaining = int(n_rows_remaining / len(value))
+        for val in value:
+            for i in range(0, n_rows_remaining):
+                if hasattr(val, "id"):
+                    output[-1].append(val.id)
+                else:
+                    output[-1].append(str(val))
+    else:
+        for i in range(0, n_rows_remaining):
+            if hasattr(value, "id"):
+                output[-1].append(value.id)
+            else:
+                output[-1].append(str(value))
+
+def apply_filter(cls, attr, val, filter_clause):
+    if len(filter_clause) < 1:
+        return True
+    if cls == filter_clause[0][0] and attr == filter_clause[0][1]:
+        if val == filter_clause[0][3]:
+            return True
+        else:
+            return True
+    else:
+        return True
+
+
+def append_query_result_values(i, result_map, query_attribute_clause, filter_clause):
 
     n_rows = 1
-    for q in query_attribute_clause:
-        query_attr_spec = get_query_attributes(q)
-        source_type = query_attr_spec[0]
-        attr = query_attr_spec[-1]
+    for source_id in range(1, i+1):
+        for q in query_attribute_clause:
+            query_attr_spec = get_query_attributes(q)
+            source_type = query_attr_spec[0]
+            attr = query_attr_spec[-1]
 
-        q_rows = 0
+            q_rows = 0
 
-        for r in result_map[source_type].values():
-            #val = result_map[source_type][r[ccql_data.ID]][attr]
-            val = getattr(r, attr)
-            if isinstance(val, list):
-                q_rows += len(val)
-            else:
-                q_rows += 1
+            source_key = str(source_id) + ":" + source_type
 
-        n_rows *= q_rows
+            if not source_key in result_map.keys():
+                print("\nAbort:", source_key, "could not be constructed from the given source clause\n")
+                sys.exit()
+
+            for r in result_map[source_key].values():
+                val = getattr(r, attr)
+                if apply_filter(source_type, attr, val, filter_clause):
+                    if isinstance(val, list):
+                        q_rows += len(val)
+                    else:
+                        q_rows += 1
+
+            n_rows *= q_rows
 
     n_rows_remaining = n_rows
     output_columns = []
     
-    for q in query_attribute_clause:
-        query_attr_spec = get_query_attributes(q)
-        source_type = query_attr_spec[0]
-        attr = query_attr_spec[-1]
+    for source_id in range(1, i+1):
+        for q in query_attribute_clause:
+            query_attr_spec = get_query_attributes(q)
+            source_type = query_attr_spec[0]
+            attr = query_attr_spec[-1]
 
-        #if not a in r.keys():
-        #    print("Attribute not found:", a)
-        #    continue
+            source_key = str(source_id) + ":" + source_type
+            output_columns.append([])
 
-        output_columns.append([])
-
-        #print(source_type)
-        #print(result_map)
-        for r in result_map[source_type].values():
-            val = getattr(r, attr)
-            #print(val)
-            #val = result_map[source_type][r[ccql_data.ID]][attr]
-            if isinstance(val, list):
-                n_rows_remaining = int(n_rows_remaining / len(val))
-                for v in val:
-                    for i in range(0, n_rows_remaining):
-                        output_columns[-1].append(str(v))
-            else:
-                for i in range(0, n_rows_remaining):
-                    output_columns[-1].append(str(val))
+            for r in result_map[source_key].values():
+                val = getattr(r, attr)
+                if apply_filter(source_type, attr, val, filter_clause):
+                    append_query_result_value(output_columns, val, n_rows_remaining)
     
     n_columns = len(output_columns)
-    
-    #print(output_columns)
 
+    rows_output = []
     for i in range(0, n_rows):
+        values_output = ""
         for j in range(0, n_columns):
             values_output += output_columns[j][i] + "|"
-        values_output += "\n"
-
-    return (n_rows, values_output)
-
-
-def carthesian_product(relations, attributes):
+        rows_output.append(values_output)
     
-    for r in rows:
+    rows_output = list(dict.fromkeys(rows_output))
+
+    return (len(rows_output), rows_output)
+
+
+def cart_product_last(relations, attributes):
+    
+    for r in relations:
 
         n_rows = 1
 
@@ -425,7 +429,7 @@ def carthesian_product(relations, attributes):
 
 
 def get_query_attributes(query_specification):
-    if type(query_specification) is tuple:
+    if type(query_specification) is tuple or type(query_specification) is list:
         return query_specification
     query_attr_spec = query_specification.split(".")
     if not len(query_attr_spec) == 2:
@@ -502,9 +506,11 @@ def parse_cli():
         print(err)
         print_usage()
 
-    if len(opts) < 1:
+    if len(opts) < 1 and len(args) > 0:
         # no options given, assuming query statement follows
         process_query(args)
+    elif len(args) < 1:
+        print_usage()
 
     for opt, arg in opts:
         if opt in ("-q", "--query"):

@@ -1,0 +1,1 @@
+Error: format error in filter clause, not syntax <class>.<attribute> <operator> <value> with <operator> not in (=|<>|<|>|<=|>=)
