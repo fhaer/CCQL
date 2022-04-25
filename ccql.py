@@ -20,7 +20,6 @@ def print_usage():
     print("")
     print("CCQL Test environment.")
     print("")
-    print("")
     print("Query Statement:")
     print("")
     print("<query_statement> = ")
@@ -28,8 +27,7 @@ def print_usage():
     print("  S <source_spec>(, <source_spec>)*  ")
     print("  [F <filter_spec>(, <filter_spec>)*];")
     print("")
-    print("")
-    print("For details, refer to the read-me file and the ccql.ebnf grammar specification.")
+    print("For details, refer to the EBNF grammar specification.")
     print("")
     sys.exit()
 

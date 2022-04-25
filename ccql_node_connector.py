@@ -175,10 +175,6 @@ class CCQL_Node_Connector:
                     identity = "0x0"
                     print("Create connection Avalanche node ...")
                     node = ccql_node.Web3_Avalanche_Node(identity)
-                if bc.id == "sol":
-                    identity = "0x0"
-                    print("Create connection Solana node ...")
-                    node = ccql_node.Web3_Solana_Node(identity)
             if bc is None:
                 print("No node connection available for", key)
             if not node.is_connected():

@@ -84,6 +84,14 @@
           </xmi:Extension>
           <type xsi:type="uml:PrimitiveType" href="http://www.omg.org/spec/UML/20131001/PrimitiveTypes.xmi#//String"/>
         </ownedAttribute>
+        <ownedAttribute xmi:id="_8RA2QJ1kEDqkEryRUs4R4A" name="name" visibility="public">
+          <xmi:Extension extender="http://www.eclipse.org/emf/2002/Ecore">
+            <eAnnotations xmi:id="_8RA2QJ1kEDqkEryRUs4R4A0" source="genmymodel">
+              <details xmi:id="_8RA2QJ1kEDqkEryRUs4R4A00" key="uuid" value="_8RA2QJ1kEDqkEryRUs4R4A"/>
+            </eAnnotations>
+          </xmi:Extension>
+          <type xsi:type="uml:PrimitiveType" href="http://www.omg.org/spec/UML/20131001/PrimitiveTypes.xmi#//String"/>
+        </ownedAttribute>
         <ownedAttribute xmi:id="_fGmGAI23EDqiOP-D7Ro6wg" name="networks" visibility="public" type="_9dlkgI21EDqiOP-D7Ro6wg">
           <xmi:Extension extender="http://www.eclipse.org/emf/2002/Ecore">
             <eAnnotations xmi:id="_fGmGAI23EDqiOP-D7Ro6wg0" source="genmymodel">
@@ -2398,6 +2406,14 @@
               <details xmi:id="_itQiEJDVEDqtt8ueKDZikw00" key="uuid" value="_itQiEJDVEDqtt8ueKDZikw"/>
             </eAnnotations>
           </xmi:Extension>
+        </ownedAttribute>
+        <ownedAttribute xmi:id="_3tpq8KaHEDq-KO1N-vSf0Q" name="unit" visibility="public">
+          <xmi:Extension extender="http://www.eclipse.org/emf/2002/Ecore">
+            <eAnnotations xmi:id="_3tpq8KaHEDq-KO1N-vSf0Q0" source="genmymodel">
+              <details xmi:id="_3tpq8KaHEDq-KO1N-vSf0Q00" key="uuid" value="_3tpq8KaHEDq-KO1N-vSf0Q"/>
+            </eAnnotations>
+          </xmi:Extension>
+          <type xsi:type="uml:PrimitiveType" href="http://www.omg.org/spec/UML/20131001/PrimitiveTypes.xmi#//String"/>
         </ownedAttribute>
       </packagedElement>
       <packagedElement xsi:type="uml:Association" xmi:id="_fOJGMI28EDqiOP-D7Ro6wg" name="Transaction_TransactionDescriptor" memberEnd="_fPYcUI28EDqiOP-D7Ro6wg _fPZDYo28EDqiOP-D7Ro6wg" navigableOwnedEnd="_fPYcUI28EDqiOP-D7Ro6wg _fPZDYo28EDqiOP-D7Ro6wg">
