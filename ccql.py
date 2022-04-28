@@ -97,9 +97,6 @@ def parse_source_clause(input):
     statement = input.strip().rstrip(',').strip()
     source_attr_spec = statement.split(':')
 
-    #if len(source_attr_spec) != 3 or len(source_attr_spec) != 4:
-    #    print("Error: format error in source clause, not starting with <blockchain_instance>:<network_instance>:<chain_descriptor_instance>", source_attr_spec)
-    #    sys.exit()
     if len(source_attr_spec) < 3 or len(source_attr_spec) > 4:
         print("Error: format error in source clause, not using syntax <blockchain_instance>:<network_instance>:<chain_descriptor_instance>", "\n")
         print("Data model <blockchain_instance>:<network_instance>:<chain_descriptor_instance> =", ccql_data.get_chain_instance_list())
@@ -231,32 +228,6 @@ def map_query_result(query_attribute_clause, i, source_type, source_type_short, 
         if cl == source_type_short:
             query_attribute_clause[i][0] = source_type
 
-def map_query_result_last(query_attribute_clause, source_type, result, result_map):
-
-    if not source_type in result_map.keys():
-        result_map[source_type] = {}
-    if not R_MAX in result_map[source_type].keys():
-        result_map[source_type][R_MAX] = 1
-    
-    query_attributes = get_query_attributes(query_attribute_clause, source_type)
-    if isinstance(query_attributes, list):
-        for q_att in query_attributes:
-            key = source_type + "." + q_att
-            append_result(result_map, source_type, key, "")
-            for r in result:
-                if isinstance(r[q_att], list):
-                    for rv in r[q_att]:
-                        #result_map[q_att].append(str(rv))
-                        append_result(result_map, source_type, key, str(rv))
-                else:
-                    #result_map[q_att].append(str(r[q_att]))
-                    append_result(result_map, source_type, key, str(r[q_att]))
-            if len(result_map[source_type][key]) > result_map[source_type][R_MAX]:
-                result_map[source_type][R_MAX] = len(result_map[source_type][key])
-                #r_max = len(result_map[q_att])
-    else:
-        result_map[query_attributes].append(str(result))
-
 
 def append_result(result_map, source_type, key, result_value):
 
@@ -302,31 +273,32 @@ def append_query_result_types(i, result_map, types_output, query_attribute_claus
 
     return types_output
 
-def append_query_result_types_l(result_map, source_type, types_output):
-    for att_type in result_map[source_type].keys():
-        if att_type == R_MAX:
-            continue
-        types_output += att_type + "|"
-    return types_output
 
 def append_query_result_value(output, value, n_rows_remaining):
+
     if isinstance(value, list):
+        # output multiple rows
         if len(value) > 0:
             n_rows_remaining = int(n_rows_remaining / len(value))
         for val in value:
             for i in range(0, n_rows_remaining):
+                # output ID if exists, string value otherwise
                 if hasattr(val, "id"):
                     output[-1].append(val.id)
                 else:
                     output[-1].append(str(val))
     else:
+        # output one row
         for i in range(0, n_rows_remaining):
+            # output ID if exists, string value otherwise
             if hasattr(value, "id"):
                 output[-1].append(value.id)
             else:
                 output[-1].append(str(value))
 
+
 def apply_filter(cls, attr, val, filter_clause):
+
     if len(filter_clause) < 1:
         return True
     if cls == filter_clause[0][0] and attr == filter_clause[0][1]:
@@ -341,14 +313,14 @@ def apply_filter(cls, attr, val, filter_clause):
 def append_query_result_values(i, result_map, query_attribute_clause, filter_clause):
 
     n_rows = 1
+
+    # check attributes for each source
     for source_id in range(1, i+1):
         for q in query_attribute_clause:
             query_attr_spec = get_query_attributes(q)
             source_type = query_attr_spec[0]
             attr = query_attr_spec[-1]
-
             q_rows = 0
-
             source_key = str(source_id) + ":" + source_type
 
             if not source_key in result_map.keys():
@@ -362,18 +334,17 @@ def append_query_result_values(i, result_map, query_attribute_clause, filter_cla
                         q_rows += len(val)
                     else:
                         q_rows += 1
-
             n_rows *= q_rows
 
     n_rows_remaining = n_rows
     output_columns = []
     
+    # output result for each source
     for source_id in range(1, i+1):
         for q in query_attribute_clause:
             query_attr_spec = get_query_attributes(q)
             source_type = query_attr_spec[0]
             attr = query_attr_spec[-1]
-
             source_key = str(source_id) + ":" + source_type
             output_columns.append([])
 
@@ -384,6 +355,7 @@ def append_query_result_values(i, result_map, query_attribute_clause, filter_cla
     
     n_columns = len(output_columns)
 
+    # output result rows
     rows_output = []
     for i in range(0, n_rows):
         values_output = ""
@@ -391,8 +363,8 @@ def append_query_result_values(i, result_map, query_attribute_clause, filter_cla
             values_output += output_columns[j][i] + "|"
         rows_output.append(values_output)
     
+    # return result as a set
     rows_output = list(dict.fromkeys(rows_output))
-
     return (len(rows_output), rows_output)
 
 
@@ -427,71 +399,17 @@ def cart_product_last(relations, attributes):
 
 
 def get_query_attributes(query_specification):
+
     if type(query_specification) is tuple or type(query_specification) is list:
         return query_specification
+
     query_attr_spec = query_specification.split(".")
+
     if not len(query_attr_spec) == 2:
         print("Error: format error in query clause")
         sys.exit(1)
+
     return query_attr_spec
-
-def append_query_result_values_bck(result_map, source_type, values_output, query_attr_spec):
-    
-    for r in result_map[source_type].values():
-
-        n_rows = 1
-
-        for a in query_attr_spec:
-            if a in r.keys() and isinstance(r[a], list):
-                n_rows *= len(r[a])
-
-        rep_rows = n_rows
-        output_columns = []
-
-        for a in query_attr_spec:
-            if not a in r.keys():
-                print("Attribute not found:", a)
-                continue
-            output_columns.append([])
-            if isinstance(r[a], list):
-                rep_rows = int(rep_rows / len(r[a]))
-                for val in r[a]:
-                    for i in range(0, rep_rows):
-                        output_columns[-1].append(str(val))
-            else:
-                for i in range(0, rep_rows):
-                    output_columns[-1].append(str(r[a]))
-    
-        n_columns = len(output_columns)
-
-        for i in range(0, n_rows):
-            for j in range(0, n_columns):
-                values_output += output_columns[j][i] + "|"
-            values_output += "\n"
-
-    return values_output
-
-def append_query_result_values_l(result_map, source_type, values_output):
-    #for source_type in sorted(result_map.keys()):
-    r_max = result_map[source_type][R_MAX]
-    for i in range(0, r_max):
-        for r in result_map[source_type].keys():
-            value = ""
-            if r == R_MAX:
-                continue
-            elif i < len(result_map[source_type][r]):
-                value = result_map[source_type][r][i]
-            elif len(result_map[source_type][r]) > 0:
-                value = result_map[source_type][r][len(result_map[source_type][r])-1]
-            else:
-                value = " "
-            #join_types = get_join_types(result_map, source_type)
-            #for join_type in join_types:
-            #    if value in join_types[join_type]:
-
-            values_output += value + "|"
-        values_output += "\n"
-    return values_output
 
 
 def parse_cli():

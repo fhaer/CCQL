@@ -169,11 +169,11 @@ class CCQL_Node_Connector:
                     node = ccql_node.Bitcoin_Node(identity)
                 if bc.id == "ada":
                     identity = "0x0"
-                    print("Create connection Cardano node ...")
+                    print("Create connection to Cardano node ...")
                     node = ccql_node.Cardano_Node(identity)
                 if bc.id == "avax":
                     identity = "0x0"
-                    print("Create connection Avalanche node ...")
+                    print("Create connection to Avalanche node ...")
                     node = ccql_node.Web3_Avalanche_Node(identity)
             if bc is None:
                 print("No node connection available for", key)
