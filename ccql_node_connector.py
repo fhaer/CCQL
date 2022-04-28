@@ -178,7 +178,7 @@ class CCQL_Node_Connector:
             if bc is None:
                 print("No node connection available for", key)
             if not node.is_connected():
-                print("Node not connected for chain:", bc)
+                print("Node not connected for chain:", bc.id)
                 sys.exit()
 
             CCQL_Node_Connector.node_connections[key] = node
