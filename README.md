@@ -33,7 +33,7 @@ Usage: ccql.py [-h|--help] <QueryStatement>
 ```
 #### Syntax of Query, Source, and Filter clauses 
 
-The syntax is described in the following excerpt from the syntax diagrams (For the complete syntax and diagrams see the grammar directory).
+The syntax is described in the following excerpt from the syntax diagrams (for the complete syntax and diagrams see the grammar directory).
 
 <img src="https://github.com/fhaer/CCQL/blob/main/syntax_diagram_excerpt.png?raw=true" data-canonical-src="https://github.com/fhaer/CCQL/blob/main/syntax_diagram_excerpt.png?raw=true" width="550" />
 
