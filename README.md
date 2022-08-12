@@ -4,7 +4,7 @@ Prototype implementation, grammar, and data model of a cross-chain query languag
 
 ### Prototype
 
-The prototype is implemented in Python 3.9, using the web3.py library for accessing blockchains. Additional node software running locally in a fully-validating configuration is required.
+The prototype is implemented in Python 3.9, using the web3.py library for accessing blockchains. Additional node software running locally in a fully-validating configuration is required. The following Python 3 modules are required: Web3 requests base58 binascii hashlib .
 
 Note: The prototype is only intended to demonstrate the feasibility of implementation.
 
