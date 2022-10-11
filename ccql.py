@@ -1,4 +1,5 @@
 from encodings import normalize_encoding
+from inspect import ArgSpec
 from os import stat
 import sys
 import getopt
@@ -60,8 +61,11 @@ def process_query(query_statement):
             filter_clause.append(filter_spec)
 
         else:
-            print("Format error in:", clause_selector, "clause")
-            print("Statement token:", token)
+            if len(clause_selector) > 0:
+                print("Format error in:", clause_selector, "clause")
+                print("Statement token:", token)
+            else:
+                print("Format error, missing query statement")
             sys.exit()
 
     i = 0
@@ -129,11 +133,12 @@ def parse_filter_clause(input):
 
     statement = input.strip().rstrip(',').strip()
 
-    filter_syntax = '(\S+)\.(\S+)\s*(=|<>|<|>|<=|>=)\s*(\S+)'
+    filter_syntax = '(\S+)\.(\S+)(==|!=|<=|>=|<|>)(\S+)'
     filter_spec = re.findall(filter_syntax, statement)
-    
+
     if len(filter_spec) != 1 or len(filter_spec[0]) != 4:
-        print("Error: format error in filter clause, not syntax <class>.<attribute> <operator> <value> with <operator> not in (=|<>|<|>|<=|>=)")
+        print("Filter specification:", filter_spec)
+        print("Error: format error in filter clause, not syntax <class>.<attribute> <operator> <value> with <operator> not in (==|!=|<|>|<=|>=)")
         sys.exit()
 
     if not isinstance(statement, str):
@@ -302,10 +307,12 @@ def apply_filter(cls, attr, val, filter_clause):
     if len(filter_clause) < 1:
         return True
     if cls == filter_clause[0][0] and attr == filter_clause[0][1]:
-        if val == filter_clause[0][3]:
+        if eval(f'{val} {filter_clause[0][2]} {filter_clause[0][3]}'):
+            #print("Filter function", f'{val} {filter_clause[0][2]} {filter_clause[0][3]}', "is True")
             return True
         else:
-            return True
+            #print("Filter function", f'{val} {filter_clause[0][2]} {filter_clause[0][3]}', "is False")
+            return False
     else:
         return True
 
@@ -412,6 +419,14 @@ def get_query_attributes(query_specification):
     return query_attr_spec
 
 
+def get_query_args(args):
+    if len(args) == 1:
+        # query statement is in one argument, possibly given in quotes
+        quoted_args = args[0].split(" ")
+        return quoted_args
+    return args
+
+
 def parse_cli():
 
     try:
@@ -424,13 +439,15 @@ def parse_cli():
 
     if len(opts) < 1 and len(args) > 0:
         # no options given, assuming query statement follows
-        process_query(args)
+        query_args = get_query_args(args)
+        process_query(query_args)
     elif len(args) < 1:
         print_usage()
 
     for opt, arg in opts:
         if opt in ("-q", "--query"):
-            process_query(args)
+            query_args = get_query_args(args)
+            process_query(query_args)
         elif opt in ("-h", "--help"):
             print_usage()
         else:

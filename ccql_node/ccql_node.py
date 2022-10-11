@@ -51,7 +51,7 @@ class Geth_Node(CCQL_Node):
 
 class Web3_Avalanche_Node(CCQL_Node):
 
-	WEB3_ADDRESS = ""
+	WEB3_ADDRESS = "https://api.avax.network/ext/bc/C/rpc"
 
 	def __init__(self, identity):
 		if len(identity) > 0 and identity != "0x0":
@@ -89,7 +89,7 @@ class Web3_Avalanche_Node(CCQL_Node):
 			tip = self.w3.eth.getBlockNumber()
 			block_id_web3 = tip + block_id + 1
 
-		web3_block = self.w3.eth.get_block(block_id_web3, True)
+		web3_block = self.w3.eth.getBlock(block_id_web3, True)
 		#print(web3_block)
 
 		block = ccql_data.Block()
@@ -378,7 +378,7 @@ class Cardano_Node(CCQL_Node):
 			tip = self.w3.eth.getBlockNumber()
 			block_id_web3 = tip + block_id + 1
 
-		web3_block = self.w3.eth.get_block(block_id_web3, True)
+		web3_block = self.w3.eth.getBlock(block_id_web3, True)
 		#print(web3_block)
 
 		block = ccql_data.Block()
@@ -665,7 +665,7 @@ class Bitcoin_Node(CCQL_Node):
 			tip = self.w3.eth.getBlockNumber()
 			block_id_web3 = tip + block_id + 1
 
-		web3_block = self.w3.eth.get_block(block_id_web3, True)
+		web3_block = self.w3.eth.getBlock(block_id_web3, True)
 		#print(web3_block)
 
 		block = ccql_data.Block()
@@ -915,7 +915,7 @@ class Bitcoin_Node(CCQL_Node):
 
 class Web3_Eth_Node(CCQL_Node):
 
-	WEB3_ADDRESS = ""
+	WEB3_ADDRESS = "wss://mainnet.infura.io/ws/v3/5cc53e4f3f614825be68d6aae4897cf4"
 
 	def __init__(self, identity):
 		if len(identity) > 0 and identity != "0x0":
@@ -951,7 +951,7 @@ class Web3_Eth_Node(CCQL_Node):
 			tip = self.w3.eth.getBlockNumber()
 			block_id_web3 = tip + block_id + 1
 
-		web3_block = self.w3.eth.get_block(block_id_web3, True)
+		web3_block = self.w3.eth.getBlock(block_id_web3, True)
 		#print(web3_block)
 
 		block = ccql_data.Block()
@@ -983,7 +983,10 @@ class Web3_Eth_Node(CCQL_Node):
 			tx.id = web3_tx.hash.hex()
 			
 			if 'maxFeePerGas' in web3_tx and not web3_tx.maxFeePerGas is None:
-				baseFeePerGas = web3_tx.maxFeePerGas - web3_tx.maxPriorityFeePerGas
+				maxFeePerGas = int.from_bytes(bytes.fromhex(web3_tx.maxFeePerGas[2:]), byteorder=sys.byteorder)
+				maxPriorityFeePerGas = int.from_bytes(bytes.fromhex(web3_tx.maxPriorityFeePerGas[2:]), byteorder=sys.byteorder)
+				print(maxFeePerGas, maxPriorityFeePerGas)
+				baseFeePerGas = maxFeePerGas - maxPriorityFeePerGas
 				fee = baseFeePerGas * web3_tx.gas
 				tx.fee = fee / 10**18
 				tx.feeUnit = "ETH"
