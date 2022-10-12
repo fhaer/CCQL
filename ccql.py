@@ -132,6 +132,7 @@ def parse_source_clause(input):
 def parse_filter_clause(input):
 
     statement = input.strip().rstrip(',').strip()
+    statement = re.sub('(\w)=(\w)', r'\1==\2', statement)
 
     filter_syntax = '(\S+)\.(\S+)(==|!=|<=|>=|<|>)(\S+)'
     filter_spec = re.findall(filter_syntax, statement)

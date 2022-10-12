@@ -983,9 +983,12 @@ class Web3_Eth_Node(CCQL_Node):
 			tx.id = web3_tx.hash.hex()
 			
 			if 'maxFeePerGas' in web3_tx and not web3_tx.maxFeePerGas is None:
-				maxFeePerGas = int.from_bytes(bytes.fromhex(web3_tx.maxFeePerGas[2:]), byteorder=sys.byteorder)
-				maxPriorityFeePerGas = int.from_bytes(bytes.fromhex(web3_tx.maxPriorityFeePerGas[2:]), byteorder=sys.byteorder)
-				print(maxFeePerGas, maxPriorityFeePerGas)
+				#print(web3_tx.maxFeePerGas)
+				#maxFeePerGas = int.from_bytes(bytes.fromhex(web3_tx.maxFeePerGas[2:]), byteorder=sys.byteorder)
+				#maxPriorityFeePerGas = int.from_bytes(bytes.fromhex(web3_tx.maxPriorityFeePerGas[2:]), byteorder=sys.byteorder)
+				maxFeePerGas = web3_tx.maxFeePerGas
+				maxPriorityFeePerGas = web3_tx.maxPriorityFeePerGas
+				#print(maxFeePerGas, maxPriorityFeePerGas)
 				baseFeePerGas = maxFeePerGas - maxPriorityFeePerGas
 				fee = baseFeePerGas * web3_tx.gas
 				tx.fee = fee / 10**18
