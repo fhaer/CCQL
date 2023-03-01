@@ -1,6 +1,6 @@
 ## CCQL
 
-Prototype implementation, grammar, and data model of a cross-chain query language.
+Prototype implementation, grammar, and data model of a cross-chain query language. 
 
 ### Prototype
 
