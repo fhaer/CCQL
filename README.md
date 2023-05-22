@@ -45,3 +45,6 @@ In the grammar directory, the following files define the syntax:
 
 In the data_model directory, the model can be viewed in PDF, SVG, and XMI files created through Eclipse-based modeling software.
 
+#### Zenodo
+
+[![DOI](https://zenodo.org/badge/479934455.svg)](https://zenodo.org/badge/latestdoi/479934455)
