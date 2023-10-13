@@ -48,3 +48,7 @@ In the data_model directory, the model can be viewed in PDF, SVG, and XMI files 
 #### Zenodo
 
 [![DOI](https://zenodo.org/badge/479934455.svg)](https://zenodo.org/badge/latestdoi/479934455)
+
+#### Related Publication
+
+Härer, Felix (2022): Towards Interoperability of Open and Permissionless Blockchains: A Cross-Chain Query Language, in: Proceedings of the 2022 IEEE International Conference on E-Business Engineering (IEEE ICEBE 2022), October 14-16, 2022, Bournemouth, UK. DOI: 10.1109/ICEBE55470.2022.00041.
